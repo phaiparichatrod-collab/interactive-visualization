@@ -1,28 +1,9 @@
-import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
+import GET_RECENT_VOTE_EVENTS from "../graphql/queries/GET_RECENT_VOTE_EVENT.gql";
 
-const GET_VOTE_EVENTS = gql`
-  query GetRecentVoteEvents {
-    voteEvents(limit: 10, sort: [{ start_date: DESC }]) {
-      id
-      title
-      start_date
-      result
-      agree_count
-      disagree_count
-      abstain_count
-      novote_count
-      organizations {
-        id
-        name
-        type
-      }
-    }
-  }
-`;
 
 function VoteEventList() {
-    const {loading, error, data} = useQuery(GET_VOTE_EVENTS);
+    const {loading, error, data} = useQuery(GET_RECENT_VOTE_EVENTS);
 
     if (loading) return <p>Loading...</p>;
     if (error) return <p>Error: {error.message}</p>;
