@@ -1,4 +1,3 @@
-import logo from './logo.svg';
 import './App.css';
 import VoteEventList from './services/voteEventList';
 import client from './graphql/apollo-client';
