@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client/react";
-import GET_RECENT_VOTE_EVENTS from "../graphql/queries/GET_RECENT_VOTE_EVENT.gql";
+import {GET_RECENT_VOTE_EVENTS} from "../graphql/queries/GET_RECENT_VOTE_EVENT.gql";
 
 
 function VoteEventList() {
