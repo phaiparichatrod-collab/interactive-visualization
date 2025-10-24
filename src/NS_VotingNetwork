@@ -1,0 +1,71 @@
+import React, { useEffect, useRef } from "react";
+import * as d3 from "d3";
+
+export default function NissaVotingNetwork() {
+  const svgRef = useRef();
+
+  useEffect(() => {
+    const svg = d3.select(svgRef.current)
+      .attr("width", 800)
+      .attr("height", 600);
+
+    const nodes = [
+      { id: "พรรค A" },
+      { id: "พรรค B" },
+      { id: "นักการเมือง 1" },
+      { id: "ร่างกฎหมาย X" },
+    ];
+
+    const links = [
+      { source: "นักการเมือง 1", target: "พรรค A", value: 1 },
+      { source: "นักการเมือง 1", target: "ร่างกฎหมาย X", value: 1 },
+    ];
+
+    const simulation = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(links).id(d => d.id).distance(200))
+      .force("charge", d3.forceManyBody().strength(-300))
+      .force("center", d3.forceCenter(400, 300));
+
+    const link = svg.append("g")
+      .selectAll("line")
+      .data(links)
+      .enter()
+      .append("line")
+      .attr("stroke", "#999");
+
+    const node = svg.append("g")
+      .selectAll("circle")
+      .data(nodes)
+      .enter()
+      .append("circle")
+      .attr("r", 10)
+      .attr("fill", "steelblue");
+
+    const label = svg.append("g")
+      .selectAll("text")
+      .data(nodes)
+      .enter()
+      .append("text")
+      .text(d => d.id)
+      .attr("font-size", 12)
+      .attr("dy", -15);
+
+    simulation.on("tick", () => {
+      link
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
+
+      node
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
+
+      label
+        .attr("x", d => d.x)
+        .attr("y", d => d.y);
+    });
+  }, []);
+
+  return <svg ref={svgRef}></svg>;
+}
