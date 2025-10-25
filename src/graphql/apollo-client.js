@@ -1,22 +1,24 @@
 import { ApolloClient, InMemoryCache, HttpLink, from } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 
-// สร้าง httpLink
+// 1) ตั้งค่า HTTP Link (API endpoint)
 const httpLink = new HttpLink({
-  uri: "http://localhost:4000/graphql",
+  uri: "https://politigraph.wevis.info/v1/graphql", // เปลี่ยนตามที่โปรเจคใช้
 });
 
-// สร้าง authLink โดยใช้ setContext
+// 2) (ถ้าต้องส่ง Token) ทำ Auth Link
+// ถ้าไม่ใช้ Token ปล่อยให้ authLink เป็น passthrough ได้
 const authLink = setContext((_, { headers }) => {
-  const token = localStorage.getItem("token"); // หรือ sessionStorage/ cookie ก็ได้
+  const token = ""; // <= ใส่ token ถ้ามี
   return {
     headers: {
       ...headers,
-      authorization: token ? `Bearer ${token}` : "",
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
   };
 });
 
+// 3) สร้าง Apollo Client + enable cache
 const client = new ApolloClient({
   link: from([authLink, httpLink]),
   cache: new InMemoryCache(),
