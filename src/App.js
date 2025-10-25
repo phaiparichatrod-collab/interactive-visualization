@@ -11,7 +11,11 @@ function App() {
         <h1>Interactive Political Visualization</h1>
         <p>
           Connected to GraphQL API:{' '}
-          <a href="https://politigraph.wevis.info/" target="_blank">
+          <a
+            href="https://politigraph.wevis.info/"
+            target="_blank"
+            rel="noreferrer"
+          >
             https://politigraph.wevis.info/
           </a>
         </p>
