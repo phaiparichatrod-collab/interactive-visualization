@@ -1,71 +1,197 @@
 import React, { useEffect, useRef } from "react";
+import { useQuery, gql } from "@apollo/client";
 import * as d3 from "d3";
 
-export default function NissaVotingNetwork() {
+// 🧠 GraphQL Query: ดึงข้อมูลร่างกฎหมายและการโหวต
+const GET_VOTES = gql`
+  query {
+    bills(limit: 10) {
+      id
+      title
+      votes {
+        decision
+        person {
+          id
+          name
+          party {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+`;
+
+const VoteNetworkGraph = () => {
   const svgRef = useRef();
+  const { loading, error, data } = useQuery(GET_VOTES);
 
   useEffect(() => {
-    const svg = d3.select(svgRef.current)
-      .attr("width", 800)
-      .attr("height", 600);
+    if (loading || error || !data) return;
 
-    const nodes = [
-      { id: "พรรค A" },
-      { id: "พรรค B" },
-      { id: "นักการเมือง 1" },
-      { id: "ร่างกฎหมาย X" },
-    ];
+    // 🧩 สร้าง nodes และ links จากข้อมูลจริง
+    const bills = data.bills;
+    const nodesMap = new Map();
+    const links = [];
 
-    const links = [
-      { source: "นักการเมือง 1", target: "พรรค A", value: 1 },
-      { source: "นักการเมือง 1", target: "ร่างกฎหมาย X", value: 1 },
-    ];
+    bills.forEach((bill) => {
+      nodesMap.set(bill.id, { id: bill.id, label: bill.title, type: "bill" });
 
-    const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(200))
-      .force("charge", d3.forceManyBody().strength(-300))
-      .force("center", d3.forceCenter(400, 300));
+      bill.votes.forEach((vote) => {
+        const person = vote.person;
+        if (!person) return;
 
-    const link = svg.append("g")
+        nodesMap.set(person.id, {
+          id: person.id,
+          label: person.name,
+          type: "person",
+        });
+
+        if (person.party) {
+          nodesMap.set(person.party.id, {
+            id: person.party.id,
+            label: person.party.name,
+            type: "party",
+          });
+
+          // link: นักการเมือง → พรรค
+          links.push({
+            source: person.id,
+            target: person.party.id,
+            type: "affiliation",
+            weight: 1,
+          });
+        }
+
+        // link: นักการเมือง → ร่างกฎหมาย
+        links.push({
+          source: person.id,
+          target: bill.id,
+          type: vote.decision,
+          weight: 1,
+        });
+      });
+    });
+
+    const nodes = Array.from(nodesMap.values());
+
+    // 🔹 สร้าง SVG
+    const width = 900;
+    const height = 600;
+    d3.select(svgRef.current).selectAll("*").remove();
+    const svg = d3
+      .select(svgRef.current)
+      .attr("viewBox", [0, 0, width, height])
+      .style("background", "#f9f9f9");
+
+    // 🔹 สร้าง simulation
+    const simulation = d3
+      .forceSimulation(nodes)
+      .force(
+        "link",
+        d3
+          .forceLink(links)
+          .id((d) => d.id)
+          .distance(120)
+      )
+      .force("charge", d3.forceManyBody().strength(-250))
+      .force("center", d3.forceCenter(width / 2, height / 2));
+
+    // 🔹 เส้น link
+    const link = svg
+      .append("g")
+      .attr("stroke", "#999")
+      .attr("stroke-opacity", 0.6)
       .selectAll("line")
       .data(links)
-      .enter()
-      .append("line")
-      .attr("stroke", "#999");
+      .join("line")
+      .attr("stroke-width", (d) => Math.sqrt(d.weight))
+      .attr("stroke", (d) =>
+        d.type === "เห็นชอบ"
+          ? "#4caf50"
+          : d.type === "ไม่เห็นชอบ"
+          ? "#f44336"
+          : "#999"
+      );
 
-    const node = svg.append("g")
+    // 🔹 สี node
+    const color = (type) => {
+      if (type === "person") return "#1f77b4";
+      if (type === "party") return "#ff9800";
+      if (type === "bill") return "#4caf50";
+      return "#ccc";
+    };
+
+    // 🔹 Node
+    const node = svg
+      .append("g")
       .selectAll("circle")
       .data(nodes)
-      .enter()
-      .append("circle")
-      .attr("r", 10)
-      .attr("fill", "steelblue");
+      .join("circle")
+      .attr("r", 15)
+      .attr("fill", (d) => color(d.type))
+      .call(
+        d3
+          .drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended)
+      );
 
-    const label = svg.append("g")
+    // 🔹 Label
+    const labels = svg
+      .append("g")
       .selectAll("text")
       .data(nodes)
-      .enter()
-      .append("text")
-      .text(d => d.id)
-      .attr("font-size", 12)
-      .attr("dy", -15);
+      .join("text")
+      .text((d) => d.label)
+      .attr("font-size", 10)
+      .attr("dx", 18)
+      .attr("dy", 4);
 
     simulation.on("tick", () => {
       link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
+        .attr("x1", (d) => d.source.x)
+        .attr("y1", (d) => d.source.y)
+        .attr("x2", (d) => d.target.x)
+        .attr("y2", (d) => d.target.y);
 
-      node
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
-
-      label
-        .attr("x", d => d.x)
-        .attr("y", d => d.y);
+      node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+      labels.attr("x", (d) => d.x).attr("y", (d) => d.y);
     });
-  }, []);
 
-  return <svg ref={svgRef}></svg>;
-}
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+    function dragged(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+  }, [data, loading, error]);
+
+  if (loading) return <p>⏳ กำลังโหลดข้อมูล...</p>;
+  if (error) return <p>❌ เกิดข้อผิดพลาด: {error.message}</p>;
+
+  return (
+    <div style={{ textAlign: "center" }}>
+      <h2>เครือข่ายการลงมติร่วมกันของ ส.ส.</h2>
+      <svg ref={svgRef} width="100%" height="600"></svg>
+      <p style={{ fontSize: "0.9rem", color: "#777" }}>
+        สี node:
+        <br />🟢 ร่างกฎหมาย | 🔵 นักการเมือง | 🟠 พรรค
+        <br />
+        สีเส้น: เขียว = เห็นชอบ, แดง = ไม่เห็นชอบ
+      </p>
+    </div>
+  );
+};
+
+export default VoteNetworkGraph;
