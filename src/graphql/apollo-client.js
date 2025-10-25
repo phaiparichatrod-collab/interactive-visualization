@@ -1,22 +1,25 @@
-import { HttpLink } from '@apollo/client';
-import { ApolloClient, InMemoryCache,  } from '@apollo/client';
-import { SetContextLink } from '@apollo/client/link/context';
+import { ApolloClient, InMemoryCache, HttpLink, from } from "@apollo/client";
+import { setContext } from "@apollo/client/link/context";
 
+// สร้าง httpLink
 const httpLink = new HttpLink({
-    uri : 'https://politigraph.wevis.info/',
+  uri: "http://localhost:4000/graphql",
 });
 
-const authLink = new SetContextLink((_, { headers }) => {
-    return {
-        headers: {
-            ...headers,
-        }
-    }
+// สร้าง authLink โดยใช้ setContext
+const authLink = setContext((_, { headers }) => {
+  const token = localStorage.getItem("token"); // หรือ sessionStorage/ cookie ก็ได้
+  return {
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : "",
+    },
+  };
 });
 
 const client = new ApolloClient({
-    link: httpLink,
-    cache: new InMemoryCache()
+  link: from([authLink, httpLink]),
+  cache: new InMemoryCache(),
 });
 
 export default client;
