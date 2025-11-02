@@ -1,0 +1,35 @@
+.visualization-page {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.faded {
+  opacity: 0.12;
+}
+
+.enforced-glow {
+  filter: drop-shadow(0 0 4px rgba(255, 204, 0, 0.75));
+}
+
+/* Custom scrollbar for select elements */
+select[multiple] {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+select[multiple]::-webkit-scrollbar {
+  width: 8px;
+}
+
+select[multiple]::-webkit-scrollbar-track {
+  background: #f7fafc;
+}
+
+select[multiple]::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 4px;
+}
+
+select[multiple]::-webkit-scrollbar-thumb:hover {
+  background-color: #a0aec0;
+}
